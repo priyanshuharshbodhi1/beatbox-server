@@ -4,6 +4,7 @@ const bodyParser = require("body-parser");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const dotenv = require("dotenv");
+const cookieParser = require("cookie-parser");
 const path = require("path");
 const PORT = process.env.PORT || 3500;
 dotenv.config();
@@ -12,8 +13,29 @@ const app = express();
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("./public"));
+app.use(cookieParser());
 
 const User = require("./models/user.js");
+const Product = require("./models/product.js");
+
+//Middlewares
+const isAuthenticated = (req, res, next) => {
+  const token = req.cookies.jwt;
+
+  if (!token) {
+    return res.sendStatus(401);
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.sendStatus(403);
+    }
+
+    req.user = user;
+
+    next();
+  });
+};
 
 // APIs
 
@@ -85,6 +107,28 @@ app.post("/api/login", async (req, res) => {
       message: "Something went wrong",
       error,
     });
+  }
+});
+
+//isloggedin api
+app.get("/api/isloggedin", isAuthenticated, (req, res) => {
+    // Check if the user is logged in and include the user's firstName in the response
+    const isLoggedIn = true; 
+    if (isLoggedIn) {
+      res.json({ isLoggedIn: true, name: req.user.name });
+    } else {
+      res.json({ isLoggedIn: false });
+    }
+  });
+  
+
+app.get("/products", async (req, res) => {
+  try {
+    const products = await Product.find({});
+    res.send(products);
+  } catch (error) {
+    console.error("Error fetching products: ", error);
+    res.status(500).send("Internal Server Error");
   }
 });
 
