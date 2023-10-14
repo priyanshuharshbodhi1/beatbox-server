@@ -140,14 +140,39 @@ app.post("/api/logout", (req, res) => {
 });
 
 app.get("/products", async (req, res) => {
-  try {
-    const products = await Product.find({});
-    res.send(products);
-  } catch (error) {
-    console.error("Error fetching products: ", error);
-    res.status(500).send("Internal Server Error");
-  }
-});
+    try {
+      const { type, color, company, price_gte, price_lte } = req.query;
+      let query = {};
+  
+      if (type && type !== "Headphone type") {
+        query.type = type;
+      }
+      if (color && color !== "Color") {
+        query.color = color;
+      }
+      if (company && company !== "Company") {
+        query.company = company;
+      }
+      if (price_gte && price_lte) {
+        query.price = { $gte: parseInt(price_gte), $lte: parseInt(price_lte) };
+      }
+  
+      let products = [];
+      if (Object.keys(query).length === 0) {
+        products = await Product.find({});
+      } else {
+        products = await Product.find(query);
+      }
+  
+      res.send(products);
+    } catch (error) {
+      console.error("Error fetching products: ", error);
+      res.status(500).send("Internal Server Error");
+    }
+  });
+  
+  
+  
 
 app.listen(PORT, () => {
   mongoose
