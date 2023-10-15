@@ -13,6 +13,8 @@ const productSchema = new mongoose.Schema({
   stock: { type: String, required: true },
   images: { type: Object, required: true },
   featured: { type: String, required: true},
+  qnty: { type: Number },
+
 });
 
 module.exports = mongoose.model("Product", productSchema);

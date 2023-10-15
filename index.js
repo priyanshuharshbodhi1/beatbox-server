@@ -82,7 +82,7 @@ app.post("/api/login", async (req, res) => {
       const passwordMatched = await bcrypt.compare(password, user.password);
       if (passwordMatched) {
         const jwToken = jwt.sign(user.toJSON(), process.env.JWT_SECRET, {
-          expiresIn: 6000,
+          expiresIn: "1h",
         });
         res.cookie("jwt", jwToken, { httpOnly: true });
         res.redirect(302, `${process.env.REACT_URL}`);
@@ -225,7 +225,6 @@ app.get("/product/:productId", async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
     res.json(product);
-    console.log("Product info successfully fetched");
   } catch (error) {
     console.error("Error fetching product: ", error);
     res.status(500).send("Internal Server Error");
