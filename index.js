@@ -56,7 +56,7 @@ app.post("/api/signup", async (req, res) => {
 
       // Generate JWT
       const jwToken = jwt.sign(newUser.toJSON(), process.env.JWT_SECRET, {
-        expiresIn: '1h'
+        expiresIn: "1h",
       });
 
       // Assign JWT to Cookie
@@ -113,7 +113,7 @@ app.post("/api/login", async (req, res) => {
 const isAuthenticated = (req, res, next) => {
   const token = req.cookies.jwt;
   // console.log("Token from Cookie:", token);
-  // console.log("Request Headers:", req.headers); 
+  // console.log("Request Headers:", req.headers);
 
   if (!token) {
     return res.sendStatus(401);
@@ -181,55 +181,56 @@ app.get("/products", async (req, res) => {
 });
 
 app.get("/products/search", async (req, res) => {
-    try {
-      const searchText = req.query.search;
-      const { type, color, company, price_gte, price_lte } = req.query;
-      let query = {};
-  
-      if (searchText) {
-        query.name = { $regex: searchText, $options: "i" };
-      }
-      if (type && type !== "Headphone type") {
-        query.type = type;
-      }
-      if (color && color !== "Color") {
-        query.color = color;
-      }
-      if (company && company !== "Company") {
-        query.company = company;
-      }
-      if (price_gte && price_lte) {
-        query.price = { $gte: parseInt(price_gte), $lte: parseInt(price_lte) };
-      }
-  
-      let products = [];
-      if (Object.keys(query).length === 0) {
-        products = await Product.find({ name: { $regex: searchText, $options: "i" } }).limit(15);
-      } else {
-        products = await Product.find(query).limit(15);
-      }
-      res.send(products);
-    } catch (error) {
-      // console.error("Error fetching products: ", error);
-      res.status(500).send("Internal Server Error");
-    }
-  });
-  
-  app.get("/products/:productId", async (req, res) => {
-    try {
-      const productId = req.params.productId;
-      const product = await Product.findById(productId);
-      if (!product) {
-        return res.status(404).json({ message: "Product not found" });
-      }
-      res.json(product);
-    } catch (error) {
-      // console.error("Error fetching product: ", error);
-      res.status(500).send("Internal Server Error");
-    }
-  });
-  
+  try {
+    const searchText = req.query.search;
+    const { type, color, company, price_gte, price_lte } = req.query;
+    let query = {};
 
+    if (searchText) {
+      query.name = { $regex: searchText, $options: "i" };
+    }
+    if (type && type !== "Headphone type") {
+      query.type = type;
+    }
+    if (color && color !== "Color") {
+      query.color = color;
+    }
+    if (company && company !== "Company") {
+      query.company = company;
+    }
+    if (price_gte && price_lte) {
+      query.price = { $gte: parseInt(price_gte), $lte: parseInt(price_lte) };
+    }
+
+    let products = [];
+    if (Object.keys(query).length === 0) {
+      products = await Product.find({
+        name: { $regex: searchText, $options: "i" },
+      }).limit(15);
+    } else {
+      products = await Product.find(query).limit(15);
+    }
+    res.send(products);
+  } catch (error) {
+    // console.error("Error fetching products: ", error);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+app.get("/product/:productId", async (req, res) => {
+  try {
+    const productId = req.params.productId;
+    const product = await Product.findById(productId).exec();
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+    res.json(product);
+    console.log("Product info successfully fetched");
+  } catch (error) {
+    console.error("Error fetching product: ", error);
+    res.status(500).send("Internal Server Error");
+  }
+});
 
 app.listen(PORT, () => {
   mongoose
