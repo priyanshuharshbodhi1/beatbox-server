@@ -18,7 +18,7 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: `${process.env.REACT_URL}`,
     credentials: true,
   })
 );
@@ -63,10 +63,10 @@ app.post("/api/signup", async (req, res) => {
       res.cookie("jwt", jwToken, { httpOnly: true });
 
       // Redirect to the desired URL
-      return res.redirect(302, "http://localhost:3000");
+      return res.redirect(302, `${process.env.REACT_URL}`);
     }
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     return res
       .status(500)
       .json({ message: "An error occurred", error: error.message });
@@ -85,7 +85,7 @@ app.post("/api/login", async (req, res) => {
           expiresIn: 6000,
         });
         res.cookie("jwt", jwToken, { httpOnly: true });
-        res.redirect(302, "http://localhost:3000");
+        res.redirect(302, `${process.env.REACT_URL}`);
         return;
       } else {
         res.json({
@@ -100,7 +100,7 @@ app.post("/api/login", async (req, res) => {
       });
     }
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     res.json({
       status: "FAIL",
       message: "Something went wrong",
@@ -112,7 +112,8 @@ app.post("/api/login", async (req, res) => {
 //Middlewares
 const isAuthenticated = (req, res, next) => {
   const token = req.cookies.jwt;
-  console.log(token);
+  // console.log("Token from Cookie:", token);
+  // console.log("Request Headers:", req.headers); 
 
   if (!token) {
     return res.sendStatus(401);
@@ -174,7 +175,7 @@ app.get("/products", async (req, res) => {
 
     res.send(products);
   } catch (error) {
-    console.error("Error fetching products: ", error);
+    // console.error("Error fetching products: ", error);
     res.status(500).send("Internal Server Error");
   }
 });
@@ -209,7 +210,7 @@ app.get("/products/search", async (req, res) => {
       }
       res.send(products);
     } catch (error) {
-      console.error("Error fetching products: ", error);
+      // console.error("Error fetching products: ", error);
       res.status(500).send("Internal Server Error");
     }
   });
@@ -223,7 +224,7 @@ app.get("/products/search", async (req, res) => {
       }
       res.json(product);
     } catch (error) {
-      console.error("Error fetching product: ", error);
+      // console.error("Error fetching product: ", error);
       res.status(500).send("Internal Server Error");
     }
   });
