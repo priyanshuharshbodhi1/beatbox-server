@@ -28,7 +28,6 @@ const Product = require("./models/product.js");
 
 // APIs------------------------------------------
 
-
 //health api
 app.get("/health", (req, res) => {
   res.json({ message: "All good!" });
@@ -54,8 +53,17 @@ app.post("/api/signup", async (req, res) => {
         password: hashedPassword,
       });
       await newUser.save();
+
+      // Generate JWT
+      const jwToken = jwt.sign(newUser.toJSON(), process.env.JWT_SECRET, {
+        expiresIn: '1h'
+      });
+
+      // Assign JWT to Cookie
+      res.cookie("jwt", jwToken, { httpOnly: true });
+
+      // Redirect to the desired URL
       return res.redirect(302, "http://localhost:3000");
-      console.log("User Created Successfully");
     }
   } catch (error) {
     console.log(error);
@@ -103,34 +111,34 @@ app.post("/api/login", async (req, res) => {
 
 //Middlewares
 const isAuthenticated = (req, res, next) => {
-    const token = req.cookies.jwt;
-    console.log(token);
-  
-    if (!token) {
-      return res.sendStatus(401);
+  const token = req.cookies.jwt;
+  console.log(token);
+
+  if (!token) {
+    return res.sendStatus(401);
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.sendStatus(403);
     }
-  
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-      if (err) {
-        return res.sendStatus(403);
-      }
-  
-      req.user = user;
-  
-      next();
-    });
-  };
+
+    req.user = user;
+
+    next();
+  });
+};
 
 //isloggedin api
 app.get("/api/isloggedin", isAuthenticated, (req, res) => {
-    // Check if the user is logged in and include the user's firstName in the response
-    if (req.user) {
-      res.json({ isLoggedIn: true});
-    } else {
-      res.json({ isLoggedIn: false });
-    }
-  });
-  
+  // Check if the user is logged in and include the user's firstName in the response
+  if (req.user) {
+    res.json({ isLoggedIn: true });
+  } else {
+    res.json({ isLoggedIn: false });
+  }
+});
+
 //logout api
 app.post("/api/logout", (req, res) => {
   // Clear the JWT token from cookies by setting an expired token
@@ -140,10 +148,46 @@ app.post("/api/logout", (req, res) => {
 });
 
 app.get("/products", async (req, res) => {
+  try {
+    const { type, color, company, price_gte, price_lte } = req.query;
+    let query = {};
+
+    if (type && type !== "Headphone type") {
+      query.type = type;
+    }
+    if (color && color !== "Color") {
+      query.color = color;
+    }
+    if (company && company !== "Company") {
+      query.company = company;
+    }
+    if (price_gte && price_lte) {
+      query.price = { $gte: parseInt(price_gte), $lte: parseInt(price_lte) };
+    }
+
+    let products = [];
+    if (Object.keys(query).length === 0) {
+      products = await Product.find({});
+    } else {
+      products = await Product.find(query);
+    }
+
+    res.send(products);
+  } catch (error) {
+    console.error("Error fetching products: ", error);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+app.get("/products/search", async (req, res) => {
     try {
+      const searchText = req.query.search;
       const { type, color, company, price_gte, price_lte } = req.query;
       let query = {};
   
+      if (searchText) {
+        query.name = { $regex: searchText, $options: "i" };
+      }
       if (type && type !== "Headphone type") {
         query.type = type;
       }
@@ -159,11 +203,10 @@ app.get("/products", async (req, res) => {
   
       let products = [];
       if (Object.keys(query).length === 0) {
-        products = await Product.find({});
+        products = await Product.find({ name: { $regex: searchText, $options: "i" } }).limit(15);
       } else {
-        products = await Product.find(query);
+        products = await Product.find(query).limit(15);
       }
-  
       res.send(products);
     } catch (error) {
       console.error("Error fetching products: ", error);
@@ -171,8 +214,21 @@ app.get("/products", async (req, res) => {
     }
   });
   
+  app.get("/products/:productId", async (req, res) => {
+    try {
+      const productId = req.params.productId;
+      const product = await Product.findById(productId);
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+      res.json(product);
+    } catch (error) {
+      console.error("Error fetching product: ", error);
+      res.status(500).send("Internal Server Error");
+    }
+  });
   
-  
+
 
 app.listen(PORT, () => {
   mongoose
