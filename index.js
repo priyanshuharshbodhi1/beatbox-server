@@ -184,35 +184,35 @@ app.get("/products/search", async (req, res) => {
   try {
     const searchText = req.query.search;
     const { type, color, company, price_gte, price_lte } = req.query;
-    let query = {};
+    const searchQuery = { name: { $regex: searchText, $options: "i" } };
 
-    if (searchText) {
-      query.name = { $regex: searchText, $options: "i" };
-    }
+    const dropdownQuery = {};
     if (type && type !== "Headphone type") {
-      query.type = type;
+      dropdownQuery.type = type;
     }
     if (color && color !== "Color") {
-      query.color = color;
+      dropdownQuery.color = color;
     }
     if (company && company !== "Company") {
-      query.company = company;
+      dropdownQuery.company = company;
     }
     if (price_gte && price_lte) {
-      query.price = { $gte: parseInt(price_gte), $lte: parseInt(price_lte) };
+      dropdownQuery.price = { $gte: parseInt(price_gte), $lte: parseInt(price_lte) };
     }
 
+    const query = {
+      $or: [searchQuery, dropdownQuery],
+    };
+
     let products = [];
-    if (Object.keys(query).length === 0) {
-      products = await Product.find({
-        name: { $regex: searchText, $options: "i" },
-      }).limit(15);
-    } else {
+    if (searchText || Object.keys(dropdownQuery).length > 0) {
       products = await Product.find(query).limit(15);
+    } else {
+      products = await Product.find({}).limit(15);
     }
     res.send(products);
   } catch (error) {
-    // console.error("Error fetching products: ", error);
+    console.error("Error fetching products: ", error);
     res.status(500).send("Internal Server Error");
   }
 });
