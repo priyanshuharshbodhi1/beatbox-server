@@ -33,6 +33,10 @@ app.get("/health", (req, res) => {
   res.json({ message: "All good!" });
 });
 
+app.get("/", (req, res) => {
+  res.json({ message: "All good!" });
+});
+
 //signup api
 app.post("/api/signup", async (req, res) => {
   try {
