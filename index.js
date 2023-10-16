@@ -116,8 +116,8 @@ app.post("/api/login", async (req, res) => {
 //Middlewares
 const isAuthenticated = (req, res, next) => {
   const token = req.cookies.jwt;
-  // console.log("Token from Cookie:", token);
-  // console.log("Request Headers:", req.headers);
+  console.log("Token from Cookie:", token);
+  console.log("Request Headers:", req.headers);
 
   if (!token) {
     return res.sendStatus(401);
