@@ -116,23 +116,24 @@ app.post("/api/login", async (req, res) => {
 //Middlewares
 const isAuthenticated = (req, res, next) => {
   const token = req.cookies.jwt;
-  console.log("Token from Cookie:", token);
-  console.log("Request Headers:", req.headers);
 
   if (!token) {
-    return res.sendStatus(401);
+    return res.status(401).json({ message: "Unauthorized: No token provided" });
   }
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) {
-      return res.sendStatus(403);
+      if (err.name === "TokenExpiredError") {
+        return res.status(401).json({ message: "Token expired" });
+      }
+      return res.status(403).json({ message: "Forbidden: Invalid token" });
     }
 
     req.user = user;
-
     next();
   });
 };
+
 
 //isloggedin api
 app.get("/api/isloggedin", isAuthenticated, (req, res) => {
