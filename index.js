@@ -64,7 +64,11 @@ app.post("/api/signup", async (req, res) => {
       });
 
       // Assign JWT to Cookie
-      res.cookie("jwt", jwToken, { httpOnly: true });
+      res.cookie("jwt", jwToken, {
+        httpOnly: true,
+        sameSite: "None",
+        secure: true,
+      });
 
       // Redirect to the desired URL
       return res.redirect(302, `${process.env.REACT_URL}`);
@@ -134,7 +138,6 @@ const isAuthenticated = (req, res, next) => {
   });
 };
 
-
 //isloggedin api
 app.get("/api/isloggedin", isAuthenticated, (req, res) => {
   // Check if the user is logged in and include the user's firstName in the response
@@ -202,7 +205,10 @@ app.get("/products/search", async (req, res) => {
       dropdownQuery.company = company;
     }
     if (price_gte && price_lte) {
-      dropdownQuery.price = { $gte: parseInt(price_gte), $lte: parseInt(price_lte) };
+      dropdownQuery.price = {
+        $gte: parseInt(price_gte),
+        $lte: parseInt(price_lte),
+      };
     }
 
     const query = {
