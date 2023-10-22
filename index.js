@@ -18,7 +18,8 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: `${process.env.REACT_URL}`,
+    // origin: `${process.env.REACT_URL}`,
+    origin: '*',
     credentials: true,
   })
 );
@@ -120,6 +121,7 @@ app.post("/api/login", async (req, res) => {
 //Middlewares
 const isAuthenticated = (req, res, next) => {
   const token = req.cookies.jwt;
+  console.log(token);
 
   if (!token) {
     return res.status(401).json({ message: "Unauthorized: No token provided" });
