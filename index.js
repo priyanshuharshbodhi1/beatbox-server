@@ -120,6 +120,7 @@ app.post("/api/login", async (req, res) => {
 
 //Middlewares
 const isAuthenticated = (req, res, next) => {
+  console.log(req);
   const token = req.cookies.jwt;
   console.log(token);
 
