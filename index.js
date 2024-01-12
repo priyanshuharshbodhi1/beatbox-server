@@ -19,7 +19,7 @@ app.use(cookieParser());
 app.use(
   cors({
     // origin: `${process.env.REACT_URL}`,
-    origin: '*',
+    origin: "*",
     credentials: true,
   })
 );
@@ -34,216 +34,222 @@ app.get("/health", (req, res) => {
   res.json({ message: "All good!" });
 });
 
-app.get("/", (req, res) => {
-  res.json({ message: "All good!" });
-});
+const authRoutes = require("./routes/authRoutes");
+const productRoutes = require("./routes/productRoutes");
 
-//signup api
-app.post("/api/signup", async (req, res) => {
-  try {
-    const { name, mobile, email, password } = req.body;
-    if (!password) {
-      return res.status(400).json({ message: "Password is required" });
-    }
-    const hashedPassword = await bcrypt.hash(password, 10);
+app.use("/api", authRoutes);
+app.use("/", productRoutes);
 
-    let user = await User.findOne({ email });
-    if (user) {
-      return res.json({ message: "User already exists" });
-    } else {
-      const newUser = new User({
-        name,
-        mobile,
-        email,
-        password: hashedPassword,
-      });
-      await newUser.save();
+// app.get("/", (req, res) => {
+//   res.json({ message: "All good!" });
+// });
 
-      // Generate JWT
-      const jwToken = jwt.sign(newUser.toJSON(), process.env.JWT_SECRET, {
-        expiresIn: "1h",
-      });
+// //signup api
+// app.post("/api/signup", async (req, res) => {
+//   try {
+//     const { name, mobile, email, password } = req.body;
+//     if (!password) {
+//       return res.status(400).json({ message: "Password is required" });
+//     }
+//     const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Assign JWT to Cookie
-      res.cookie("jwt", jwToken, {
-        httpOnly: true,
-        sameSite: "None",
-        secure: true,
-      });
+//     let user = await User.findOne({ email });
+//     if (user) {
+//       return res.json({ message: "User already exists" });
+//     } else {
+//       const newUser = new User({
+//         name,
+//         mobile,
+//         email,
+//         password: hashedPassword,
+//       });
+//       await newUser.save();
 
-      // Redirect to the desired URL
-      return res.redirect(302, `${process.env.REACT_URL}`);
-    }
-  } catch (error) {
-    // console.log(error);
-    return res
-      .status(500)
-      .json({ message: "An error occurred", error: error.message });
-  }
-});
+//       // Generate JWT
+//       const jwToken = jwt.sign(newUser.toJSON(), process.env.JWT_SECRET, {
+//         expiresIn: "1h",
+//       });
 
-//login api
-app.post("/api/login", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    if (user) {
-      const passwordMatched = await bcrypt.compare(password, user.password);
-      if (passwordMatched) {
-        const jwToken = jwt.sign(user.toJSON(), process.env.JWT_SECRET, {
-          expiresIn: "1h",
-        });
-        res.cookie("jwt", jwToken, { httpOnly: true });
-        res.redirect(302, `${process.env.REACT_URL}`);
-        return;
-      } else {
-        res.json({
-          status: "FAIL",
-          message: "Incorrect password",
-        });
-      }
-    } else {
-      res.json({
-        status: "FAIL",
-        message: "User does not exist",
-      });
-    }
-  } catch (error) {
-    // console.log(error);
-    res.json({
-      status: "FAIL",
-      message: "Something went wrong",
-      error,
-    });
-  }
-});
+//       // Assign JWT to Cookie
+//       res.cookie("jwt", jwToken, {
+//         httpOnly: true,
+//         sameSite: "None",
+//         secure: true,
+//       });
 
-//Middlewares
-const isAuthenticated = (req, res, next) => {
-  console.log(req);
-  const token = req.cookies.jwt;
-  console.log(token);
+//       // Redirect to the desired URL
+//       return res.redirect(302, `${process.env.REACT_URL}`);
+//     }
+//   } catch (error) {
+//     // console.log(error);
+//     return res
+//       .status(500)
+//       .json({ message: "An error occurred", error: error.message });
+//   }
+// });
 
-  if (!token) {
-    return res.status(401).json({ message: "Unauthorized: No token provided" });
-  }
+// //login api
+// app.post("/api/login", async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+//     const user = await User.findOne({ email });
+//     if (user) {
+//       const passwordMatched = await bcrypt.compare(password, user.password);
+//       if (passwordMatched) {
+//         const jwToken = jwt.sign(user.toJSON(), process.env.JWT_SECRET, {
+//           expiresIn: "1h",
+//         });
+//         res.cookie("jwt", jwToken, { httpOnly: true });
+//         res.redirect(302, `${process.env.REACT_URL}`);
+//         return;
+//       } else {
+//         res.json({
+//           status: "FAIL",
+//           message: "Incorrect password",
+//         });
+//       }
+//     } else {
+//       res.json({
+//         status: "FAIL",
+//         message: "User does not exist",
+//       });
+//     }
+//   } catch (error) {
+//     // console.log(error);
+//     res.json({
+//       status: "FAIL",
+//       message: "Something went wrong",
+//       error,
+//     });
+//   }
+// });
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      if (err.name === "TokenExpiredError") {
-        return res.status(401).json({ message: "Token expired" });
-      }
-      return res.status(403).json({ message: "Forbidden: Invalid token" });
-    }
+// //Middlewares
+// const isAuthenticated = (req, res, next) => {
+//   console.log(req);
+//   const token = req.cookies.jwt;
+//   console.log(token);
 
-    req.user = user;
-    next();
-  });
-};
+//   if (!token) {
+//     return res.status(401).json({ message: "Unauthorized: No token provided" });
+//   }
 
-//isloggedin api
-app.get("/api/isloggedin", isAuthenticated, (req, res) => {
-  // Check if the user is logged in and include the user's firstName in the response
-  if (req.user) {
-    res.json({ isLoggedIn: true });
-  } else {
-    res.json({ isLoggedIn: false });
-  }
-});
+//   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+//     if (err) {
+//       if (err.name === "TokenExpiredError") {
+//         return res.status(401).json({ message: "Token expired" });
+//       }
+//       return res.status(403).json({ message: "Forbidden: Invalid token" });
+//     }
 
-//logout api
-app.post("/api/logout", (req, res) => {
-  // Clear the JWT token from cookies by setting an expired token
-  res.cookie("jwt", "", { expires: new Date(0) });
+//     req.user = user;
+//     next();
+//   });
+// };
 
-  res.status(200).json({ message: "Logged out successfully" });
-});
+// //isloggedin api
+// app.get("/api/isloggedin", isAuthenticated, (req, res) => {
+//   // Check if the user is logged in and include the user's firstName in the response
+//   if (req.user) {
+//     res.json({ isLoggedIn: true });
+//   } else {
+//     res.json({ isLoggedIn: false });
+//   }
+// });
 
-app.get("/products", async (req, res) => {
-  try {
-    const { type, color, company, price_gte, price_lte } = req.query;
-    let query = {};
+// //logout api
+// app.post("/api/logout", (req, res) => {
+//   // Clear the JWT token from cookies by setting an expired token
+//   res.cookie("jwt", "", { expires: new Date(0) });
 
-    if (type && type !== "Headphone type") {
-      query.type = type;
-    }
-    if (color && color !== "Color") {
-      query.color = color;
-    }
-    if (company && company !== "Company") {
-      query.company = company;
-    }
-    if (price_gte && price_lte) {
-      query.price = { $gte: parseInt(price_gte), $lte: parseInt(price_lte) };
-    }
+//   res.status(200).json({ message: "Logged out successfully" });
+// });
 
-    let products = [];
-    if (Object.keys(query).length === 0) {
-      products = await Product.find({});
-    } else {
-      products = await Product.find(query);
-    }
+// app.get("/products", async (req, res) => {
+//   try {
+//     const { type, color, company, price_gte, price_lte } = req.query;
+//     let query = {};
 
-    res.send(products);
-  } catch (error) {
-    // console.error("Error fetching products: ", error);
-    res.status(500).send("Internal Server Error");
-  }
-});
+//     if (type && type !== "Headphone type") {
+//       query.type = type;
+//     }
+//     if (color && color !== "Color") {
+//       query.color = color;
+//     }
+//     if (company && company !== "Company") {
+//       query.company = company;
+//     }
+//     if (price_gte && price_lte) {
+//       query.price = { $gte: parseInt(price_gte), $lte: parseInt(price_lte) };
+//     }
 
-app.get("/products/search", async (req, res) => {
-  try {
-    const searchText = req.query.search;
-    const { type, color, company, price_gte, price_lte } = req.query;
-    const searchQuery = { name: { $regex: searchText, $options: "i" } };
+//     let products = [];
+//     if (Object.keys(query).length === 0) {
+//       products = await Product.find({});
+//     } else {
+//       products = await Product.find(query);
+//     }
 
-    const dropdownQuery = {};
-    if (type && type !== "Headphone type") {
-      dropdownQuery.type = type;
-    }
-    if (color && color !== "Color") {
-      dropdownQuery.color = color;
-    }
-    if (company && company !== "Company") {
-      dropdownQuery.company = company;
-    }
-    if (price_gte && price_lte) {
-      dropdownQuery.price = {
-        $gte: parseInt(price_gte),
-        $lte: parseInt(price_lte),
-      };
-    }
+//     res.send(products);
+//   } catch (error) {
+//     // console.error("Error fetching products: ", error);
+//     res.status(500).send("Internal Server Error");
+//   }
+// });
 
-    const query = {
-      $or: [searchQuery, dropdownQuery],
-    };
+// app.get("/products/search", async (req, res) => {
+//   try {
+//     const searchText = req.query.search;
+//     const { type, color, company, price_gte, price_lte } = req.query;
+//     const searchQuery = { name: { $regex: searchText, $options: "i" } };
 
-    let products = [];
-    if (searchText || Object.keys(dropdownQuery).length > 0) {
-      products = await Product.find(query).limit(15);
-    } else {
-      products = await Product.find({}).limit(15);
-    }
-    res.send(products);
-  } catch (error) {
-    console.error("Error fetching products: ", error);
-    res.status(500).send("Internal Server Error");
-  }
-});
+//     const dropdownQuery = {};
+//     if (type && type !== "Headphone type") {
+//       dropdownQuery.type = type;
+//     }
+//     if (color && color !== "Color") {
+//       dropdownQuery.color = color;
+//     }
+//     if (company && company !== "Company") {
+//       dropdownQuery.company = company;
+//     }
+//     if (price_gte && price_lte) {
+//       dropdownQuery.price = {
+//         $gte: parseInt(price_gte),
+//         $lte: parseInt(price_lte),
+//       };
+//     }
 
-app.get("/product/:productId", async (req, res) => {
-  try {
-    const productId = req.params.productId;
-    const product = await Product.findById(productId).exec();
-    if (!product) {
-      return res.status(404).json({ message: "Product not found" });
-    }
-    res.json(product);
-  } catch (error) {
-    console.error("Error fetching product: ", error);
-    res.status(500).send("Internal Server Error");
-  }
-});
+//     const query = {
+//       $or: [searchQuery, dropdownQuery],
+//     };
+
+//     let products = [];
+//     if (searchText || Object.keys(dropdownQuery).length > 0) {
+//       products = await Product.find(query).limit(15);
+//     } else {
+//       products = await Product.find({}).limit(15);
+//     }
+//     res.send(products);
+//   } catch (error) {
+//     console.error("Error fetching products: ", error);
+//     res.status(500).send("Internal Server Error");
+//   }
+// });
+
+// app.get("/product/:productId", async (req, res) => {
+//   try {
+//     const productId = req.params.productId;
+//     const product = await Product.findById(productId).exec();
+//     if (!product) {
+//       return res.status(404).json({ message: "Product not found" });
+//     }
+//     res.json(product);
+//   } catch (error) {
+//     console.error("Error fetching product: ", error);
+//     res.status(500).send("Internal Server Error");
+//   }
+// });
 
 app.listen(PORT, () => {
   mongoose
